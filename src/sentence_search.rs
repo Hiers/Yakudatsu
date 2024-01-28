@@ -15,8 +15,8 @@ pub fn sentence_search(options: &Options, body: Value, output: &mut String) -> O
     let mut i = 1;
 
     /* 
-     * Each entry is an english or japanese sentence and we're pairing it up with the equivalents in
-     * the translations array
+     * Each entry is an english or japanese sentence and we're pairing it up
+     * with the equivalent sentences in the translations array
      */
     for entry in body.iter() {
         if i >= options.limit && options.limit != 0 {

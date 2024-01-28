@@ -55,8 +55,8 @@ pub fn search_by_radical(query: &mut String) -> Option<()> {
             }
             println!();
         }
-        Err(_e) => eprintln!("Error while reading radkfile\nIf you don't have the radkfile, download it from \
-        https://www.edrdg.org/krad/kradinf.html and place it in \"~/.local/share/\" on Linux or \"~\\AppData\\Local\\\" on Windows. \
+        Err(_e) => eprintln!("Error while reading radkfile\nIf you don't have the radkfile, download it from\n\
+        https://www.edrdg.org/krad/kradinf.html and place it in \"~/.local/share/\" on Linux or \"~\\AppData\\Local\\\" on Windows.\n\
         This file is needed to search radicals by strokes."),
     }
     Some(())

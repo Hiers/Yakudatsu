@@ -1,4 +1,4 @@
-# Jisho (cli)
+# Yakudatsu (cli)
 A simple cli tool to look up Japanese words using jisho.org's API.
 Additionally, searching for kanji by radicals and browsing tatoeba's database of example sentences is also available.
 
@@ -22,15 +22,17 @@ cargo build --release
 ```
 
 ## Usage
-A readline wrapper like `rlwrap` is strongly recommended if using `jisho-cli` interactively (-i or empty input).
+A readline wrapper like `rlwrap` is strongly recommended if using `ykdt` interactively (-i or empty input).
 ```
-jisho [<words to look up>]
-jisho :[<radicals in kanji>]
-jisho _[<expressions in  sentences>]
+ykdt [<words to look up>]
+ykdt :[<radicals in kanji>]
+ykdt _[<expressions in  sentences>]
 ```
 When looking up kanji, * (or ＊) can be used to add a radical that can't be easily typed, e.g. 气.
 
-## Note
+## Sources
+Dictionary definitions retrieved using [jisho](jisho.org)'s API.
+
 To search kanji by radicals, the [radkfile](https://www.edrdg.org/krad/kradinf.html) needs to be installed in either `~/.local/share/` on Linux or `~\AppData\Local\ `on Windows.
 
 Example sentences taken from [tatoeba](https://tatoeba.org/).

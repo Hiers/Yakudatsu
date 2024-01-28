@@ -43,10 +43,9 @@ fn main() -> Result<(), ureq::Error> {
 
     let mut query = String::new();
     let mut output = String::with_capacity(51200); /* Give output 50KiB of buffer; Should be enough to avoid reallocs*/
-    loop {
+    query = options.query.trim().to_string().clone();
 
-        query.clear();
-        query = options.query.trim().to_string().clone();
+    loop {
         if options.interactive || options.query.trim().is_empty() {
             while query.is_empty() || query == ":" || query == "：" || query == "_" || query == "＿" {
                 query.clear();
@@ -113,6 +112,8 @@ fn main() -> Result<(), ureq::Error> {
         if !options.interactive && !options.query.trim().is_empty() {
             break;
         }
+
+        query.clear();
     }
     Ok(())
 }
@@ -123,8 +124,8 @@ fn parse_args() -> util::Options {
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Use jisho.org from the cli. \
-                            Searching for kanji by radicals is also available if the radkfile file is installed in \"~/.local/share\" \
-                            (linux) or \"~\\AppData\\Local\\\" (windows). \
+                            Searching for kanji by radicals is also available if the radkfile file is \
+                            installed in \"~/.local/share\" (linux) or \"~\\AppData\\Local\\\" (windows). \
                             Additionally, searching for sentences in tatoeba is also possible.");
         ap.add_option(
             &["-V", "--version"],
