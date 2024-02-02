@@ -41,9 +41,8 @@ fn main() -> Result<(), ureq::Error> {
 
     let options = parse_args();
 
-    let mut query = String::new();
     let mut output = String::with_capacity(51200); /* Give output 50KiB of buffer; Should be enough to avoid reallocs*/
-    query = options.query.trim().to_string().clone();
+    let mut query = options.query.trim().to_string().clone();
 
     loop {
         if options.interactive || options.query.trim().is_empty() {
@@ -55,6 +54,7 @@ fn main() -> Result<(), ureq::Error> {
                     /* Exit on EOF */
                     return Ok(());
                 }
+                query = query.trim().to_string();
             }
         } else if query == ":" || query == "："  || query == "_" || query == "＿" {
                 return Ok(());
@@ -89,7 +89,8 @@ fn main() -> Result<(), ureq::Error> {
             }
 
         } else { /* Word search */
-            // Do API request
+            
+            /* Do API request */
             let body: Value = ureq::get(&format!(JISHO_URL!(), query))
                 .call()?
                 .into_json()?;
