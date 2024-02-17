@@ -3,7 +3,6 @@ use std::{
     collections::HashSet,
 };
 
-use colored::*;
 use kradical_parsing::radk;
 
 pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership]) -> Option<()> {
@@ -105,7 +104,7 @@ fn search_by_strokes(query: &mut String, radk_list: &[radk::Membership], n: usiz
                                                     char_and_index.0 +
                                                     char_and_index.1.len_utf8(),
                                                     rad.to_string().as_str());
-                                println!("{}", query.as_str().bright_black());
+                                println!("\x1b[90m{}\x1b[m", query);
                                 return Some(*rad);
                             }
                         },

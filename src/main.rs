@@ -48,7 +48,7 @@ fn main() -> Result<(), ureq::Error> {
 
     let options = parse_args();
 
-    let mut output = String::with_capacity(51200); /* Give output 50KiB of buffer; Should be enough to avoid reallocs*/
+    let mut output = String::with_capacity(3096); /* Give output 3KiB of buffer; Should be enough to avoid reallocs*/
     let mut query = options.query.trim().to_string().clone();
 
     loop {

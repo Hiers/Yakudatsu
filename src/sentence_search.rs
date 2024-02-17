@@ -1,7 +1,7 @@
+use std::fmt::Write;
 use crate::util::*;
 
 use serde_json::Value;
-use colored::*;
 
 pub fn sentence_search(options: &Options, body: Value, output: &mut String) -> Option<usize>{
 
@@ -33,13 +33,12 @@ pub fn sentence_search(options: &Options, body: Value, output: &mut String) -> O
 
 
         for translation in translations.iter() {
-            let index_str = format!("{}.", i).bright_black();
             
             /* Prefer to keep japanese sentences on top */
             if entry.get("lang")? == "eng" {
-                *output += &format!("{} {}\n   {}\n\n", index_str, value_to_str(translation.get("text")?), value_to_str(entry.get("text")?));
+                write!(output, "{}", format_args!("\x1b[90m{}.\x1b[m {}\n   {}\n\n", i, value_to_str(translation.get("text")?), value_to_str(entry.get("text")?))).unwrap();
             } else {
-                *output += &format!("{} {}\n   {}\n\n", index_str, value_to_str(entry.get("text")?), value_to_str(translation.get("text")?));
+                write!(output, "{}", format_args!("\x1b[90m{}.\x1b[m {}\n   {}\n\n", i, value_to_str(entry.get("text")?), value_to_str(translation.get("text")?))).unwrap();
             }
 
             i += 1;

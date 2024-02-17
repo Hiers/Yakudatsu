@@ -1,7 +1,7 @@
+use std::fmt::Write;
 use crate::util::*;
 
 use serde_json::Value;
-use colored::*;
 
 pub fn word_search(options: &Options, body: Value, query: &str, output: &mut String) -> Option<usize> {
     let mut lines_output = 0;
@@ -36,46 +36,49 @@ fn print_item(query: &str, value: &Value, output: &mut String) -> Option<usize> 
     let main_form = japanese.get(0)?;
     let mut num_of_lines = 0;
 
-    *output += &format!("{} {}\n", format_form(query, main_form)?, format_result_tags(value));
+    format_form(query, main_form, output)?;
+    format_result_tags(value, output);
+    output.push('\n');
 
     /* Print senses */
     let senses = value_to_arr(value.get("senses")?);
     let mut prev_parts_of_speech = String::new();
 
     for (i, sense) in senses.iter().enumerate() {
-        let (sense_str, new_part_of_speech) = format_sense(sense, i, &mut prev_parts_of_speech);
-        if !sense_str.is_empty() {
-            /*
-             * If the current meaning of our word is a different part of speech
-             * (e.g. previous meaning was 'Noun' and the current is 'Adverb'), an extra line will be
-             * printed with this information
-             */
-            if new_part_of_speech {
-                num_of_lines += 1;
-            }
-
-            *output += &format!("    {}\n", sense_str);
+        let new_part_of_speech = format_sense(sense, i+1, output, &mut prev_parts_of_speech);
+        /*
+         * If the current meaning of our word is a different part of speech
+         * (e.g. previous meaning was 'Noun' and the current is 'Adverb'), an extra line will be
+         * printed with this information
+         */
+        if new_part_of_speech {
+            num_of_lines += 1;
         }
+
     }
 
     /* Print alternative readings and kanji usage */
     if let Some(form) = japanese.get(1) {
         num_of_lines += 2;
 
-        *output += &format!("    {}", "Other forms\n".bright_blue());
-        *output += &format!("    {}", format_form(query, form)?);
+        output.push_str("    \x1b[94mOther forms\x1b[m\n    ");
+        format_form(query, form, output)?;
 
         for i in 2..japanese.len() {
-            *output += &format!(", {}", format_form(query, japanese.get(i)?)?);
+            output.push_str(", ");
+            format_form(query, japanese.get(i)?, output)?;
         }
         output.push('\n');
     }
+
+    /* Clear any font effect or colour */
+    output.push_str("\x1b[m");
 
     num_of_lines += senses.len() + 1;
     Some(num_of_lines)
 }
 
-fn format_form(query: &str, form: &Value) -> Option<String> {
+fn format_form(query: &str, form: &Value, output: &mut String) -> Option<()> {
     let reading = form
         .get("reading")
         .map(value_to_str)
@@ -83,19 +86,22 @@ fn format_form(query: &str, form: &Value) -> Option<String> {
 
     let word = value_to_str(form.get("word").unwrap_or(form.get("reading")?));
 
-    Some(format!("{}[{}]", word, reading))
+    write!(output, "{}", format_args!("{}[{}]", word, reading)).ok()?;
+    
+    Some(())
 }
 
-fn format_sense(value: &Value, index: usize, prev_parts_of_speech: &mut String) -> (String, bool) {
+fn format_sense(value: &Value, index: usize, output: &mut String, prev_parts_of_speech: &mut String) -> bool {
     let english_definitons = value.get("english_definitions");
     let parts_of_speech = value.get("parts_of_speech");
     if english_definitons.is_none() {
-        return ("".to_owned(), false);
+        return false;
     }
 
     let english_definiton = value_to_arr(english_definitons.unwrap());
 
-    let parts_of_speech = if let Some(parts_of_speech) = parts_of_speech {
+    let is_part_of_speech_new;
+    if let Some(parts_of_speech) = parts_of_speech {
         let parts = value_to_arr(parts_of_speech)
             .iter()
             .map(value_to_str)
@@ -105,45 +111,40 @@ fn format_sense(value: &Value, index: usize, prev_parts_of_speech: &mut String) 
         /* Do not repeat a meaning's part of speech if it is the same as the previous meaning */
         if !parts.is_empty() && parts != *prev_parts_of_speech {
             *prev_parts_of_speech = parts.clone();
-            format!("{}\n    ", parts.bright_blue())
+            is_part_of_speech_new = true;
+
+            write!(output, "{}", format_args!("    \x1b[34m{}\x1b[m\n", parts)).unwrap();
         } else {
-            String::new()
+            is_part_of_speech_new = false;
         }
     } else {
-        String::new()
-    };
-
-    let new_part_of_speech = !parts_of_speech.is_empty();
-
-    let index_str = format!("{}.",(index + 1));
-    let mut tags = format_sense_tags(value);
-    let info = format_sense_info(value);
-
-    if !info.is_empty() && !tags.is_empty() {
-        tags.push(',');
+        is_part_of_speech_new = false;
     }
 
-    (format!(
-        "{}{} {}{}{}",
-        parts_of_speech,
-        index_str.bright_black(),
+    write!(output, "{}",
+        format_args!("    \x1b[90m{}.\x1b[m {}",
+        index,
         english_definiton
             .iter()
             .map(value_to_str)
             .collect::<Vec<&str>>()
             .join(", "),
-        tags.bright_black(),
-        info.bright_black(),
-    ), new_part_of_speech)
+    )).unwrap();
+
+    let t = format_sense_tags(value, output);
+    format_sense_info(value, output, t);
+    output.push('\n');
+         
+
+    return is_part_of_speech_new;
 }
 
 /// Format tags from a whole meaning
-fn format_result_tags(value: &Value) -> String {
-    let mut builder = String::new();
+fn format_result_tags(value: &Value, output: &mut String) {
 
     let is_common_val = value.get("is_common");
     if is_common_val.is_some() && value_to_bool(is_common_val.unwrap()) {
-        builder.push_str(&"(common) ".bright_green().to_string());
+        output.push_str("\x1b[92m(common)\x1b[m");
     }
 
     if let Some(jlpt) = value.get("jlpt") {
@@ -156,52 +157,57 @@ fn format_result_tags(value: &Value) -> String {
             let jlpt = value_to_str(jlpt.get(0).unwrap())
                 .replace("jlpt-", "")
                 .to_uppercase();
-            builder.push_str(&format!("({}) ", jlpt.bright_blue()));
+            write!(output, "{}", format_args!("\x1b[94m({})\x1b[m", jlpt)).unwrap();
         }
     }
-
-    builder
 }
 
 /// Format tags from a single sense entry
-fn format_sense_tags(value: &Value) -> String {
-    let mut builder = String::new();
-
+fn format_sense_tags(value: &Value, output: &mut String) -> bool {
     if let Some(tags) = value.get("tags") {
         let tags = value_to_arr(tags);
 
         if let Some(tag) = tags.get(0) {
             let t = format_sense_tag(value_to_str(tag));
-            builder += &format!(" {}", t.as_str());
+            output.push_str(" \x1b[90m");
+            output.push_str(t);
+        } else {
+            return false;
         }
 
         for tag in tags.get(1).iter() {
             let t = format_sense_tag(value_to_str(tag));
-            builder += &format!(", {}", t.as_str());
+            output.push_str(", ");
+            output.push_str(t);
         }
+        
+        return true;
     }
-    builder
+    return false;
 }
 
-fn format_sense_tag(tag: &str) -> String {
+fn format_sense_tag(tag: &str) -> &str{
     match tag {
-        "Usually written using kana alone" => "UK".to_string(),
-        s => s.to_string(),
+        "Usually written using kana alone" => "UK",
+        s => s,
     }
 }
 
-fn format_sense_info(value: &Value) -> String {
-    let mut builder = String::new();
+fn format_sense_info(value: &Value, output: &mut String, t: bool) {
     if let Some(all_info) = value.get("info") {
         let all_info = value_to_arr(all_info);
 
         if let Some(info) = all_info.get(0) {
-            builder += &format!(" {}", value_to_str(info));
+            if t {
+                output.push_str(",");
+            }
+            output.push_str(" \x1b[90m");
+            output.push_str(value_to_str(info));
         }
 
         for info in all_info.get(1).iter() {
-            builder += &format!(", {}", value_to_str(info));
+            output.push_str(", ");
+            output.push_str(value_to_str(info));
         }
     }
-    builder
 }
