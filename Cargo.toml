@@ -1,7 +1,7 @@
 [package]
 name = "Yakudatsu"
 description = "A cli multi-tool for japanese. Forked from https://github.com/JojiiOfficial/jisho-cli"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["jojii <jojii@gmx.net>", "Hiers <dvmap@protonmail.com"]
 readme = "README.md"
 repository = "https://github.com/Hiers/Yakudatsu"
