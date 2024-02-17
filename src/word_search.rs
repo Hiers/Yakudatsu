@@ -199,7 +199,7 @@ fn format_sense_info(value: &Value, output: &mut String, t: bool) {
 
         if let Some(info) = all_info.get(0) {
             if t {
-                output.push_str(",");
+                output.push(',');
             }
             output.push_str(" \x1b[90m");
             output.push_str(value_to_str(info));

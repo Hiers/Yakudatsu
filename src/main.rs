@@ -71,7 +71,7 @@ fn main() -> Result<(), ureq::Error> {
         output.clear();
 
         if query.starts_with(':') || query.starts_with('：') { /* Kanji search */
-            if try_load == true {
+            if try_load {
                 radk_list = { match radk::parse_file(&path) {
                         Ok(radk_list) => radk_list,
                         Err(_e) => radk_list,
