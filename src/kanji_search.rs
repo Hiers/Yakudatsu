@@ -1,63 +1,60 @@
 use std::{
     io::{stdin, stdout, Write},
-    path::PathBuf,
     collections::HashSet,
 };
 
 use colored::*;
 use kradical_parsing::radk;
 
-pub fn search_by_radical(query: &mut String) -> Option<()> {
+pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership]) -> Option<()> {
     let mut result: HashSet<_> = HashSet::new();
     let mut aux: HashSet<_> = HashSet::new();
-    let path = get_radkfile_path();
 
-    match radk::parse_file(path.unwrap()) { /* if path doesn't exist, just panic */
-        Ok(radk_list) => {
-            result.clear();
+    if !radk_list.is_empty() {
+        result.clear();
 
-            /* First iteration: get the baseline for the results */
-            let mut rad = query.chars().nth(1).unwrap();
+        /* First iteration: get the baseline for the results */
+        let mut rad = query.chars().nth(1).unwrap();
+        if rad == '*' || rad == '＊' {
+            /* if search_by_strokes failed, then something is very wrong */
+            rad = search_by_strokes(query, radk_list, 1)?;
+        }
+
+        for k in radk_list.iter() {
+            if k.radical.glyph.contains(rad) {
+                for input in &k.kanji {
+                    result.insert(input);
+                }
+                break;
+            }
+        }
+
+        /* Iterate until you've exhausted user input: refine the baseline to get final output */
+        for (i, mut rad) in query.clone().chars().skip(2).enumerate() {
             if rad == '*' || rad == '＊' {
                 /* if search_by_strokes failed, then something is very wrong */
-                rad = search_by_strokes(query, &radk_list, 1)?;
+                rad = search_by_strokes(query, radk_list, i+2)?;
             }
 
             for k in radk_list.iter() {
                 if k.radical.glyph.contains(rad) {
                     for input in &k.kanji {
-                        result.insert(input);
+                        aux.insert(input);
                     }
+                    result = &result & &aux;
+                    aux.clear();
                     break;
                 }
             }
-
-            /* Iterate until you've exhausted user input: refine the baseline to get final output */
-            for (i, mut rad) in query.clone().chars().skip(2).enumerate() {
-                if rad == '*' || rad == '＊' {
-                    /* if search_by_strokes failed, then something is very wrong */
-                    rad = search_by_strokes(query, &radk_list, i+2)?;
-                }
-
-                for k in radk_list.iter() {
-                    if k.radical.glyph.contains(rad) {
-                        for input in &k.kanji {
-                            aux.insert(input);
-                        }
-                        result = &result & &aux;
-                        aux.clear();
-                        break;
-                    }
-                }
-            }
-            for r in result {
-                print!("{r} ");
-            }
-            println!();
         }
-        Err(_e) => eprintln!("Error while reading radkfile\nIf you don't have the radkfile, download it from\n\
+        for r in result {
+            print!("{r} ");
+        }
+        println!();
+    } else {
+        eprintln!("Error while reading radkfile\nIf you don't have the radkfile, download it from\n\
         https://www.edrdg.org/krad/kradinf.html and place it in \"~/.local/share/\" on Linux or \"~\\AppData\\Local\\\" on Windows.\n\
-        This file is needed to search radicals by strokes."),
+        This file is needed to search radicals by strokes.");
     }
     Some(())
 }
@@ -121,43 +118,3 @@ fn search_by_strokes(query: &mut String, radk_list: &[radk::Membership], n: usiz
     }
 }
 
-#[cfg(unix)]
-fn get_radkfile_path() -> Option<PathBuf> {
-    #[allow(deprecated)] /* obviously no windows problem here */
-    std::env::home_dir()
-        .map(|path| path.join(".local/share/radkfile"))
-}
-
-#[cfg(windows)]
-/* Nicked this section straight from https://github.com/rust-lang/cargo/blob/master/crates/home/src/windows.rs */
-extern "C" {
-    fn wcslen(buf: *const u16) -> usize;
-}
-#[cfg(windows)]
-fn get_radkfile_path() -> Option<PathBuf> {
-    use std::ffi::OsString;
-    use std::os::windows::ffi::OsStringExt;
-    use windows_sys::Win32::Foundation::{MAX_PATH, S_OK};
-    use windows_sys::Win32::UI::Shell::{SHGetFolderPathW, CSIDL_PROFILE};
-    use std::env;
-
-    match env::var_os("USERPROFILE").filter(|s| !s.is_empty()).map(PathBuf::from) {
-        Some(path) => {
-            Some(path.join("Appdata\\Local\\radkfile"))
-        },
-        None => {
-            unsafe {
-                let mut path: Vec<u16> = Vec::with_capacity(MAX_PATH as usize);
-                match SHGetFolderPathW(0, CSIDL_PROFILE as i32, 0, 0, path.as_mut_ptr()) {
-                    S_OK => {
-                        let len = wcslen(path.as_ptr());
-                        path.set_len(len);
-                        let s = OsString::from_wide(&path);
-                        Some(PathBuf::from(s).join("Appdata\\Local\\radkfile"))
-                    }
-                    _ => None,
-                }
-            }
-        }
-    }
-}

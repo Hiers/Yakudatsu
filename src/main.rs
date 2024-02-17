@@ -4,6 +4,7 @@ mod sentence_search;
 mod util;
 use std::{
     io::{stdin, stdout, Write},
+    path::PathBuf,
     process::{Command, Stdio},
     env,
 };
@@ -16,6 +17,7 @@ use sentence_search::sentence_search;
 use argparse::{ArgumentParser, List, Print, Store, StoreTrue};
 use serde_json::Value;
 use atty::Stream;
+use kradical_parsing::radk;
 
 macro_rules! JISHO_URL {
     () => {
@@ -38,6 +40,11 @@ fn main() -> Result<(), ureq::Error> {
     } else {
         0
     };
+
+    let path = get_radkfile_path().unwrap();
+    let mut radk_list = Vec::new();
+    let mut try_load = true;
+
 
     let options = parse_args();
 
@@ -64,8 +71,16 @@ fn main() -> Result<(), ureq::Error> {
         output.clear();
 
         if query.starts_with(':') || query.starts_with('：') { /* Kanji search */
+            if try_load == true {
+                radk_list = { match radk::parse_file(&path) {
+                        Ok(radk_list) => radk_list,
+                        Err(_e) => radk_list,
+                    }
+                };
+                try_load = false;
+            }
             /* if search_by_radical failed, then something is very wrong */
-            if search_by_radical(&mut query).is_none() {
+            if search_by_radical(&mut query, &radk_list).is_none() {
                 eprintln!("Couldn't parse input");
             }
 
@@ -230,6 +245,47 @@ fn terminal_size() -> Result<usize, i16> {
             Err(0)
         } else {
             Ok((window.srWindow.Bottom - window.srWindow.Top) as usize)
+        }
+    }
+}
+
+#[cfg(unix)]
+fn get_radkfile_path() -> Option<PathBuf> {
+    #[allow(deprecated)] /* obviously no windows problem here */
+    std::env::home_dir()
+        .map(|path| path.join(".local/share/radkfile"))
+}
+
+#[cfg(windows)]
+/* Nicked this section straight from https://github.com/rust-lang/cargo/blob/master/crates/home/src/windows.rs */
+extern "C" {
+    fn wcslen(buf: *const u16) -> usize;
+}
+#[cfg(windows)]
+fn get_radkfile_path() -> Option<PathBuf> {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::Foundation::{MAX_PATH, S_OK};
+    use windows_sys::Win32::UI::Shell::{SHGetFolderPathW, CSIDL_PROFILE};
+    use std::env;
+
+    match env::var_os("USERPROFILE").filter(|s| !s.is_empty()).map(PathBuf::from) {
+        Some(path) => {
+            Some(path.join("Appdata\\Local\\radkfile"))
+        },
+        None => {
+            unsafe {
+                let mut path: Vec<u16> = Vec::with_capacity(MAX_PATH as usize);
+                match SHGetFolderPathW(0, CSIDL_PROFILE as i32, 0, 0, path.as_mut_ptr()) {
+                    S_OK => {
+                        let len = wcslen(path.as_ptr());
+                        path.set_len(len);
+                        let s = OsString::from_wide(&path);
+                        Some(PathBuf::from(s).join("Appdata\\Local\\radkfile"))
+                    }
+                    _ => None,
+                }
+            }
         }
     }
 }
