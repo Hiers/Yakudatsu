@@ -103,7 +103,7 @@ fn main() -> Result<(), ureq::Error> {
             }
 
         }
-        if lines_output >= term_size - 1 && term_size != 0 {
+        if lines_output >= term_size.saturating_sub(1) && term_size != 0 {
             /* Output is a different process that is not a tty (i.e. less), but we want to keep colour */
             env::set_var("CLICOLOR_FORCE", "1");
             pipe_to_less(&output);
