@@ -224,6 +224,14 @@ fn terminal_size() -> Result<usize, i16> {
     unsafe {
         let handle = GetStdHandle(STD_OUTPUT_HANDLE) as windows_sys::Win32::Foundation::HANDLE;
 
+        /*While we're here, try to set the windows terminal so it properly handles ANSI escape codes*/
+        let mut original_out_mode: u32 = 0;
+        if GetConsoleMode(handle, &mut original_out_mode) != 0 {
+            let requested_out_mode: u32 = ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            let out_mode: u32 = original_out_mode | requested_out_mode;
+            SetConsoleMode(handle, out_mode);
+        }
+
         let mut window = CONSOLE_SCREEN_BUFFER_INFO {
             dwSize: COORD { X: 0, Y: 0},
             dwCursorPosition: COORD { X: 0, Y: 0},
@@ -262,7 +270,6 @@ fn get_radkfile_path() -> Option<PathBuf> {
     use std::os::windows::ffi::OsStringExt;
     use windows_sys::Win32::Foundation::{MAX_PATH, S_OK};
     use windows_sys::Win32::UI::Shell::{SHGetFolderPathW, CSIDL_PROFILE};
-    use std::env;
 
     match env::var_os("USERPROFILE").filter(|s| !s.is_empty()).map(PathBuf::from) {
         Some(path) => {
