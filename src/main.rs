@@ -221,10 +221,6 @@ fn terminal_size() -> Result<usize, i16> {
 fn terminal_size() -> Result<usize, i16> {
     use windows_sys::Win32::System::Console::*;
 
-    if let Err(e) = control::set_virtual_terminal(true) {
-        panic!("Could not set terminal as virtual: {:?}", e);
-    }
-
     unsafe {
         let handle = GetStdHandle(STD_OUTPUT_HANDLE) as windows_sys::Win32::Foundation::HANDLE;
 
@@ -266,6 +262,7 @@ fn get_radkfile_path() -> Option<PathBuf> {
     use std::os::windows::ffi::OsStringExt;
     use windows_sys::Win32::Foundation::{MAX_PATH, S_OK};
     use windows_sys::Win32::UI::Shell::{SHGetFolderPathW, CSIDL_PROFILE};
+    use std::env;
 
     match env::var_os("USERPROFILE").filter(|s| !s.is_empty()).map(PathBuf::from) {
         Some(path) => {
