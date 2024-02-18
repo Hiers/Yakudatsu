@@ -3,7 +3,7 @@ mod kanji_search;
 mod sentence_search;
 mod util;
 use std::{
-    io::{stdin, stdout, Write},
+    io::{stdin, stdout, Write, IsTerminal},
     path::PathBuf,
     process::{Command, Stdio},
     env,
@@ -16,7 +16,6 @@ use sentence_search::sentence_search;
 
 use argparse::{ArgumentParser, List, Print, Store, StoreTrue};
 use serde_json::Value;
-use atty::Stream;
 use kradical_parsing::radk;
 
 macro_rules! JISHO_URL {
@@ -35,7 +34,7 @@ macro_rules! TATOEBA_URL_JPN_QUERY { () => {
 
 fn main() -> Result<(), ureq::Error> {
 
-    let term_size = if atty::is(Stream::Stdout) {
+    let term_size = if stdout().is_terminal() {
         terminal_size().unwrap_or(0)
     } else {
         0
