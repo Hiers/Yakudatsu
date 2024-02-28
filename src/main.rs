@@ -103,7 +103,7 @@ fn main() -> Result<(), ureq::Error> {
             }
 
         } else { /* Word search */
-            
+
             /* Do API request */
             let body: Value = ureq::get(&format!(JISHO_URL!(), query))
                 .call()?

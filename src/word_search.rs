@@ -79,15 +79,17 @@ fn print_item(query: &str, value: &Value, output: &mut String) -> Option<usize> 
 }
 
 fn format_form(query: &str, form: &Value, output: &mut String) -> Option<()> {
-    let reading = form
-        .get("reading")
-        .map(value_to_str)
-        .unwrap_or(query);
+    if let Some(reading) = form.get("reading") {
 
-    let word = value_to_str(form.get("word").unwrap_or(form.get("reading")?));
+        let word = value_to_str(form.get("word").unwrap_or(reading));
+        write!(output, "{}", format_args!("{}[{}]", word, value_to_str(reading))).ok()?;
 
-    write!(output, "{}", format_args!("{}[{}]", word, reading)).ok()?;
-    
+    } else if let Some(word) = form.get("word") {
+        write!(output, "{}", format_args!("{}", value_to_str(word))).ok()?;
+    } else {
+        write!(output, "{}", format_args!("{}",query)).ok()?;
+    }
+
     Some(())
 }
 
@@ -134,7 +136,7 @@ fn format_sense(value: &Value, index: usize, output: &mut String, prev_parts_of_
     let t = format_sense_tags(value, output);
     format_sense_info(value, output, t);
     output.push('\n');
-         
+
 
     return is_part_of_speech_new;
 }
