@@ -56,9 +56,9 @@ fn main() -> Result<(), ureq::Error> {
                 query.clear();
                 print!("=> ");
                 stdout().flush().unwrap();
-                if (stdin().read_line(&mut query).expect("Can't read from stdin")) == 0 {
-                    /* Exit on EOF */
-                    return Ok(());
+                match stdin().read_line(&mut query) {
+                    Ok(n) => if n == 0 { return Ok(()); /* Exit on EOF */ }
+                    Err(e) => eprintln!("Error: {e}")
                 }
                 query = query.trim().to_string();
             }
