@@ -11,6 +11,7 @@ use std::{
 
 use word_search::word_search;
 use kanji_search::search_by_radical;
+use kanji_search::get_stroke_info;
 use sentence_search::sentence_search;
 
 
@@ -42,6 +43,7 @@ fn main() -> Result<(), ureq::Error> {
 
     let path = get_radkfile_path().unwrap();
     let mut radk_list = Vec::new();
+    let mut stroke_info = Vec::new();
     let mut try_load = true;
 
 
@@ -53,11 +55,12 @@ fn main() -> Result<(), ureq::Error> {
     loop {
         if options.interactive || options.query.trim().is_empty() {
             while query.is_empty() || query == ":" || query == "：" || query == "_" || query == "＿" {
-                query.clear();
                 print!("=> ");
                 stdout().flush().unwrap();
+
+                query.clear();
                 match stdin().read_line(&mut query) {
-                    Ok(n) => if n == 0 { return Ok(()); /* Exit on EOF */ }
+                    Ok(n) => if n == 0 { return Ok(()); } /* Exit on EOF */
                     Err(e) => eprintln!("Error: {e}")
                 }
                 query = query.trim().to_string();
@@ -76,10 +79,15 @@ fn main() -> Result<(), ureq::Error> {
                         Err(_e) => radk_list,
                     }
                 };
+                stroke_info = { match get_stroke_info() {
+                        Ok(stroke_info) => stroke_info,
+                        Err(_e) => stroke_info,
+                    }
+                };
                 try_load = false;
             }
             /* if search_by_radical failed, then something is very wrong */
-            if search_by_radical(&mut query, &radk_list).is_none() {
+            if search_by_radical(&mut query, &radk_list, &stroke_info).is_none() {
                 eprintln!("Couldn't parse input");
             }
 

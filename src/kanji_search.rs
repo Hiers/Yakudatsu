@@ -1,15 +1,16 @@
 use std::{
     io::{stdin, stdout, Write},
     collections::HashSet,
+    fs
 };
 
 use kradical_parsing::radk;
 
-pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership]) -> Option<()> {
+pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership], stroke_info: &[String]) -> Option<()> {
     let mut result: HashSet<_> = HashSet::new();
     let mut aux: HashSet<_> = HashSet::new();
 
-    if !radk_list.is_empty() {
+    if !radk_list.is_empty() && !stroke_info.is_empty() {
         result.clear();
 
         /* First iteration: get the baseline for the results */
@@ -46,14 +47,43 @@ pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership]) -> 
                 }
             }
         }
-        for r in result {
-            print!("{r} ");
+
+        /* Hash sets are unordered; Will now order the results */
+        let mut vec: Vec<Vec<String>> = Vec::with_capacity(30); /* The kanji we care about will have at most 30 strokes */
+        for _i in 0..29 {
+            vec.push(Vec::new());
         }
-        println!();
-    } else {
+
+        /* 
+         * A vector of vectors is useful here to store kanji by number of strokes
+         * First vector's index will indicate the number of strokes (minus 1 because it starts at 0)
+         * Second vector will hold all of the kanji that is written in that number of strokes
+         */
+        for r in &result {
+            for (i, s) in stroke_info.iter().enumerate() {
+                if s.contains(r.as_str()) {
+                    vec[i].push(r.to_string());
+                    break;
+                }
+            }
+        }
+
+        for (i, v) in vec.iter().enumerate() {
+            if !v.is_empty() {
+                let ii = i + 1;
+                print!("\x1b[90m{:02} -\x1b[m", ii);
+                for l in v {
+                    print!(" {l}");
+                }
+                println!();
+            }
+        }
+    } else if radk_list.is_empty() {
         eprintln!("Error while reading radkfile\nIf you don't have the radkfile, download it from\n\
         https://www.edrdg.org/krad/kradinf.html and place it in \"~/.local/share/\" on Linux or \"~\\AppData\\Local\\\" on Windows.\n\
         This file is needed to search radicals by strokes.");
+    } else {
+        eprintln!("File \"/usr/local/share/ykdt/kanji_strokes\" is missing!");
     }
     Some(())
 }
@@ -117,3 +147,11 @@ fn search_by_strokes(query: &mut String, radk_list: &[radk::Membership], n: usiz
     }
 }
 
+pub fn get_stroke_info() -> Result<Vec<String>, std::io::Error> {
+    #[allow(deprecated)]
+    let file = fs::read_to_string("/usr/local/share/ykdt/kanji_strokes")?;
+
+    let stroke_info: Vec<String> = Vec::from_iter(file.split('\n').map(|s| s.to_owned()));
+
+    Ok(stroke_info)
+}
