@@ -33,7 +33,7 @@ pub fn word_search(options: &Options, body: Value, query: &str, output: &mut Str
 
 fn print_item(query: &str, value: &Value, output: &mut String) -> Option<usize> {
     let japanese = value_to_arr(value.get("japanese")?);
-    let main_form = japanese.get(0)?;
+    let main_form = japanese.first()?;
     let mut num_of_lines = 0;
 
     format_form(query, main_form, output)?;
@@ -138,7 +138,7 @@ fn format_sense(value: &Value, index: usize, output: &mut String, prev_parts_of_
     output.push('\n');
 
 
-    return is_part_of_speech_new;
+    is_part_of_speech_new
 }
 
 /// Format tags from a whole meaning
@@ -156,7 +156,7 @@ fn format_result_tags(value: &Value, output: &mut String) {
          */
         let jlpt = value_to_arr(jlpt);
         if !jlpt.is_empty() {
-            let jlpt = value_to_str(jlpt.get(0).unwrap())
+            let jlpt = value_to_str(jlpt.first().unwrap())
                 .replace("jlpt-", "")
                 .to_uppercase();
             write!(output, "{}", format_args!("\x1b[94m({})\x1b[m", jlpt)).unwrap();
@@ -169,7 +169,7 @@ fn format_sense_tags(value: &Value, output: &mut String) -> bool {
     if let Some(tags) = value.get("tags") {
         let tags = value_to_arr(tags);
 
-        if let Some(tag) = tags.get(0) {
+        if let Some(tag) = tags.first() {
             let t = format_sense_tag(value_to_str(tag));
             output.push_str(" \x1b[90m");
             output.push_str(t);
@@ -182,10 +182,11 @@ fn format_sense_tags(value: &Value, output: &mut String) -> bool {
             output.push_str(", ");
             output.push_str(t);
         }
-        
+
         return true;
     }
-    return false;
+
+    false
 }
 
 fn format_sense_tag(tag: &str) -> &str{
@@ -199,7 +200,7 @@ fn format_sense_info(value: &Value, output: &mut String, t: bool) {
     if let Some(all_info) = value.get("info") {
         let all_info = value_to_arr(all_info);
 
-        if let Some(info) = all_info.get(0) {
+        if let Some(info) = all_info.first() {
             if t {
                 output.push(',');
             }
