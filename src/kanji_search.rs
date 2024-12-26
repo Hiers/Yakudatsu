@@ -148,10 +148,15 @@ fn search_by_strokes(query: &mut String, radk_list: &[radk::Membership], n: usiz
 }
 
 pub fn get_stroke_info() -> Result<Vec<String>, std::io::Error> {
-    #[allow(deprecated)]
-    let file = fs::read_to_string("/usr/local/share/ykdt/kanji_strokes")?;
-
+    let file: String;
+    #[cfg(unix)]
+    {
+        file = fs::read_to_string("/usr/local/share/ykdt/kanji_strokes")?;
+    }
+    #[cfg(windows)]
+    {
+        file = fs::read_to_string("C:\\Program Files\\ykdt\\kanji_strokes")?;
+    }
     let stroke_info: Vec<String> = Vec::from_iter(file.split('\n').map(|s| s.to_owned()));
-
     Ok(stroke_info)
 }

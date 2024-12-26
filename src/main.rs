@@ -285,7 +285,7 @@ fn get_radkfile_path() -> Option<PathBuf> {
         None => {
             unsafe {
                 let mut path: Vec<u16> = Vec::with_capacity(MAX_PATH as usize);
-                match SHGetFolderPathW(0, CSIDL_PROFILE as i32, 0, 0, path.as_mut_ptr()) {
+                match SHGetFolderPathW(std::ptr::null_mut(), CSIDL_PROFILE as i32, std::ptr::null_mut(), 0, path.as_mut_ptr()) {
                     S_OK => {
                         let len = wcslen(path.as_ptr());
                         path.set_len(len);
