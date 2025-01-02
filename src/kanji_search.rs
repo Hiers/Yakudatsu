@@ -6,7 +6,7 @@ use std::{
 
 use kradical_parsing::radk;
 
-pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership], stroke_info: &[String]) -> Option<()> {
+pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership], stroke_info: &[HashSet<char>]) -> Option<()> {
     let mut result: HashSet<_> = HashSet::new();
     let mut aux: HashSet<_> = HashSet::new();
 
@@ -48,8 +48,8 @@ pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership], str
             }
         }
 
-        /* Hash sets are unordered; Will now order the results */
-        let mut vec: Vec<Vec<String>> = Vec::with_capacity(30); /* The kanji we care about will have at most 30 strokes */
+        /* Hash sets are unordered; Will now order the results by number of strokes */
+        let mut vec: Vec<Vec<&String>> = Vec::with_capacity(30); /* The kanji we care about will have at most 30 strokes */
         for _i in 0..29 {
             vec.push(Vec::new());
         }
@@ -61,8 +61,8 @@ pub fn search_by_radical(query: &mut String, radk_list: &[radk::Membership], str
          */
         for r in &result {
             for (i, s) in stroke_info.iter().enumerate() {
-                if s.contains(r.as_str()) {
-                    vec[i].push(r.to_string());
+                if s.contains(&(r.chars().next().unwrap())) { /* r is a String that has just one character */
+                    vec[i].push(r);
                     break;
                 }
             }
@@ -147,8 +147,9 @@ fn search_by_strokes(query: &mut String, radk_list: &[radk::Membership], n: usiz
     }
 }
 
-pub fn get_stroke_info() -> Result<Vec<String>, std::io::Error> {
+pub fn get_stroke_info() -> Result<Vec<HashSet<char>>, std::io::Error> {
     let file: String;
+    let mut r: Vec<HashSet<char>> = Vec::with_capacity(31);
     #[cfg(unix)]
     {
         file = fs::read_to_string("/usr/local/share/ykdt/kanji_strokes")?;
@@ -157,6 +158,10 @@ pub fn get_stroke_info() -> Result<Vec<String>, std::io::Error> {
     {
         file = fs::read_to_string("C:\\Program Files\\ykdt\\kanji_strokes")?;
     }
-    let stroke_info: Vec<String> = Vec::from_iter(file.split('\n').map(|s| s.to_owned()));
-    Ok(stroke_info)
+    for l in file.split('\n') {
+        let b: HashSet<char> = HashSet::from_iter(l.chars());
+
+        r.push(b);
+    }
+    Ok(r)
 }
